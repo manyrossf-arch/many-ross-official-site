@@ -1,4 +1,5 @@
 import { CalendarRange, Camera, Newspaper } from "lucide-react";
+import Image from "next/image";
 
 import { FadeIn } from "@/components/motion/fade-in";
 import { teamTimeline } from "@/lib/site-data";
@@ -26,6 +27,25 @@ export function TeamSection() {
         </FadeIn>
 
         <div className="grid gap-5">
+          <FadeIn delay={0.06}>
+            <div className="glass-panel overflow-hidden rounded-[34px] p-4">
+              <div className="relative overflow-hidden rounded-[28px] border border-white/10">
+                <div className="absolute left-4 top-4 z-10 rounded-full border border-gold/30 bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-gold">
+                  Official Many Ross Visual
+                </div>
+                <div className="relative aspect-[4/5]">
+                  <Image
+                    src="/images/many-ross-official-poster.jpeg"
+                    alt="Poster oficial de Many Ross"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.04),rgba(0,0,0,0.4))]" />
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
           {teamTimeline.map((item, index) => {
             const Icon = icons[index] ?? Camera;
 
