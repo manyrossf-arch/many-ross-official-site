@@ -8,7 +8,7 @@ Antes de validar o desplegar localmente, instala Node.js 20 o superior y npm en 
 
 1. Duplica `.env.example` como `.env.local`
 2. Confirma el dominio final en `NEXT_PUBLIC_SITE_URL`
-3. Agrega claves privadas reales cuando actives YouTube API y Printful
+3. Agrega claves privadas reales cuando actives YouTube API y el catalogo real de Printful
 
 Variables publicas activas:
 
@@ -35,8 +35,7 @@ Variables privadas:
 
 - `YOUTUBE_API_KEY`
 - `YOUTUBE_CHANNEL_ID`
-- `PRINTFUL_API_KEY`
-- `PRINTFUL_STORE_ID`
+- `PRINTFUL_API_TOKEN`
 
 ## 2. Instalar dependencias
 
@@ -56,9 +55,10 @@ npm run build
 - Hero y navegacion con links oficiales
 - Seccion musica conectada a Spotify, Apple Music y YouTube
 - Seccion YouTube con CTAs oficiales
+- Seccion tienda visible con fallback demo o catalogo real de Printful
 - Seccion redes visible
 - Footer mostrando solo plataformas configuradas
-- Facebook y tienda ocultos si no tienen URL
+- Facebook oculto si no tiene URL
 - Newsletter sin formularios ficticios
 - Responsive en movil, tablet y desktop
 
@@ -69,12 +69,13 @@ npm run build
 3. Crea un nuevo proyecto
 4. Importa el repositorio
 5. Agrega todas las variables de entorno en `Project Settings > Environment Variables`
-6. Deploy
+6. Para Printful, agrega solo `PRINTFUL_API_TOKEN` como variable privada
+7. Deploy
 
 ## 6. Integraciones siguientes
 
 Despues de aprobar la version desplegada:
 
 - conectar YouTube API al endpoint `app/api/youtube/route.ts`
-- conectar Printful a `app/api/printful/route.ts`
-- activar tienda y merch cuando recibamos las URLs oficiales
+- extender el catalogo real mediante `app/api/store/products/route.ts`
+- activar checkout, pedidos, Stripe y webhooks en una fase posterior

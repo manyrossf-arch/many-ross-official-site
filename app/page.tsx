@@ -8,7 +8,6 @@ import { TeamSection } from "@/components/sections/team-section";
 import { YouTubeSection } from "@/components/sections/youtube-section";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { siteConfig } from "@/lib/site-config";
 
 export default function HomePage() {
   return (
@@ -18,7 +17,7 @@ export default function HomePage() {
         <HeroSection />
         <MusicSection />
         <YouTubeSection />
-        {siteConfig.visibility.store ? <StoreSection /> : null}
+        <StoreSection />
         <SocialSection />
         <TeamSection />
         <NewsletterSection />

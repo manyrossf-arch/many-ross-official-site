@@ -25,14 +25,13 @@ export const siteConfig = {
   links,
   visibility: {
     facebook: hasUrl(links.facebook),
-    store: hasUrl(links.officialStore),
+    store: true,
     printful: hasUrl(links.printful),
     newsletter: hasUrl(links.newsletter),
   },
   api: {
     youtubeKey: process.env.YOUTUBE_API_KEY || "",
     youtubeChannelId: process.env.YOUTUBE_CHANNEL_ID || "",
-    printfulKey: process.env.PRINTFUL_API_KEY || "",
-    printfulStoreId: process.env.PRINTFUL_STORE_ID || "",
+    printfulTokenConfigured: Boolean(process.env.PRINTFUL_API_TOKEN?.trim()),
   },
 };

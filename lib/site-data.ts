@@ -17,7 +17,7 @@ export const navigation = [
   { label: "Inicio", href: "#inicio", show: true },
   { label: "Musica", href: "#musica", show: true },
   { label: "YouTube", href: "#youtube", show: true },
-  { label: "Tienda", href: "#tienda", show: siteConfig.visibility.store },
+  { label: "Tienda", href: "#tienda", show: true },
   { label: "Team Many Ross", href: "#team", show: true },
   { label: "Redes", href: "#redes", show: true },
   { label: "Newsletter", href: "#newsletter", show: true },
@@ -117,21 +117,6 @@ export const storeCategories = [
   { title: "Coleccion Nivel Leyenda", icon: Sparkles },
 ];
 
-export const merchItems = [
-  {
-    title: "Titanio y Salitre Tee",
-    price: "$54",
-    image: "/images/titanio-y-salitre-tee.png",
-    tag: "Edicion Limitada",
-  },
-  {
-    title: "Nivel Leyenda Cap",
-    price: "$42",
-    image: "/images/nivel-leyenda-cap.png",
-    tag: "Drop Exclusivo",
-  },
-];
-
 export const phrases = [
   "Si el barco se me hunde... lo convierto en submarino.",
   "Nivel Leyenda",
@@ -157,7 +142,7 @@ export const teamTimeline = [
 export const integrations = [
   "YouTube API preparada para integrarse sin rehacer la interfaz",
   "Spotify y Apple Music conectados mediante enlaces oficiales",
-  "Printful listo para activarse cuando llegue la URL de tienda",
-  "Tienda oficial oculta hasta recibir enlace definitivo",
+  "Catalogo real de Printful preparado con lectura segura desde el servidor",
+  "Checkout y pedidos reservados para una fase posterior sin rehacer la tienda",
   "Newsletter preparado para conectar un proveedor real sin redisenar el sitio",
 ];
