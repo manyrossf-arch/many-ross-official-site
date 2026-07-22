@@ -31,6 +31,14 @@ body::before {
   opacity: 0.18;
 }
 
+img,
+picture,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
 ::selection {
   background: rgba(201, 162, 75, 0.36);
   color: #ffffff;
@@ -52,10 +60,57 @@ body::before {
 }
 
 .eyebrow {
-  @apply text-xs font-semibold uppercase tracking-[0.35em] text-gold/90;
+  @apply text-[10px] font-semibold uppercase text-gold/90 sm:text-xs;
+  letter-spacing: 0.22em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .luxury-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(201, 162, 75, 0.55), transparent);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.mobile-safe-title {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  word-break: normal;
+}
+
+.mobile-safe-copy {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.fluid-display {
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  line-height: 0.96;
+}
+
+.fluid-section-title {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.04;
+}
+
+.fluid-card-title {
+  font-size: clamp(1.35rem, 4.2vw, 2rem);
+  line-height: 1.08;
+}
+
+@media (max-width: 430px) {
+  .compact-tracking {
+    letter-spacing: 0.08em !important;
+  }
+
+  .compact-eyebrow {
+    letter-spacing: 0.16em !important;
+  }
 }

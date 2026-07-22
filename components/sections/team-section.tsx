@@ -10,17 +10,17 @@ export function TeamSection() {
   return (
     <section id="team" className="bg-white/[0.02] py-24">
       <div className="section-shell grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
-        <FadeIn className="space-y-6">
+        <FadeIn className="min-w-0 space-y-6">
           <p className="eyebrow">Team Many Ross</p>
-          <h2 className="font-display text-4xl uppercase tracking-[0.14em] text-ivory md:text-5xl">
+          <h2 className="mobile-safe-title fluid-section-title compact-tracking font-display uppercase text-ivory">
             Comunidad, historia y futuro del universo creativo.
           </h2>
-          <p className="text-lg leading-8 text-white/60">
+          <p className="mobile-safe-copy text-[clamp(1rem,3.8vw,1.125rem)] leading-7 sm:leading-8 text-white/60">
             Una seccion exclusiva para contar quienes estan detras del movimiento, mostrar fotos, noticias y proximos lanzamientos sin romper la estetica premium del sitio.
           </p>
-          <div className="glass-panel rounded-[34px] p-7">
-            <p className="text-sm uppercase tracking-[0.24em] text-gold">Historia editorial</p>
-            <p className="mt-4 text-sm leading-7 text-white/60">
+          <div className="glass-panel rounded-[34px] p-7 min-w-0">
+            <p className="text-sm uppercase tracking-[0.18em] text-gold compact-tracking">Historia editorial</p>
+            <p className="mobile-safe-copy mt-4 text-sm leading-7 text-white/60">
               Team Many Ross puede crecer aqui como newsroom visual: updates, making-of, backstage, avances y piezas de identidad cultural de la marca.
             </p>
           </div>
@@ -30,8 +30,8 @@ export function TeamSection() {
           <FadeIn delay={0.06}>
             <div className="glass-panel overflow-hidden rounded-[34px] p-4">
               <div className="relative overflow-hidden rounded-[28px] border border-white/10">
-                <div className="absolute left-4 top-4 z-10 rounded-full border border-gold/30 bg-black/50 px-4 py-2 text-xs uppercase tracking-[0.24em] text-gold">
-                  Official Many Ross Visual
+                <div className="absolute left-4 top-4 z-10 max-w-[calc(100%-2rem)] rounded-full border border-gold/30 bg-black/50 px-4 py-2 text-[10px] uppercase tracking-[0.16em] text-gold compact-eyebrow">
+                  <span className="text-balance">Official Many Ross Visual</span>
                 </div>
                 <div className="relative aspect-[4/5]">
                   <Image
@@ -51,13 +51,13 @@ export function TeamSection() {
 
             return (
               <FadeIn key={item.title} delay={0.1 + index * 0.08}>
-                <article className="glass-panel flex gap-5 rounded-[30px] p-6">
-                  <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
+                <article className="glass-panel flex min-w-0 gap-5 rounded-[30px] p-6">
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-3 shrink-0">
                     <Icon className="h-5 w-5 text-gold" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="font-display text-lg uppercase tracking-[0.14em] text-ivory">{item.title}</h3>
-                    <p className="text-sm leading-7 text-white/58">{item.body}</p>
+                  <div className="min-w-0 space-y-2">
+                    <h3 className="mobile-safe-title font-display text-[clamp(1rem,4vw,1.125rem)] uppercase tracking-[0.12em] text-ivory compact-tracking">{item.title}</h3>
+                    <p className="mobile-safe-copy text-sm leading-7 text-white/58">{item.body}</p>
                   </div>
                 </article>
               </FadeIn>
