@@ -1,5 +1,7 @@
 import type { AddCartItemInput, CartItem, CartTotals } from "@/types/cart";
 
+import { hasMockLikeId, isPrintfulSource } from "@/lib/store-purchase";
+
 export const CART_STORAGE_KEY = "many-ross-cart-v1";
 export const CART_MIN_QUANTITY = 1;
 export const CART_MAX_QUANTITY = 10;
@@ -34,7 +36,28 @@ export function createCartItemId(productId: string, variantId: string) {
   return `${productId}::${variantId}`;
 }
 
-export function buildCartItem(input: AddCartItemInput): CartItem {
+export function isValidCartInput(input: AddCartItemInput) {
+  if (!isPrintfulSource(input.source)) {
+    return false;
+  }
+
+  if (!input.productId.trim() || hasMockLikeId(input.variantId)) {
+    return false;
+  }
+
+  if (!Number.isFinite(input.unitPrice) || input.unitPrice < 0 || !input.currency.trim()) {
+    return false;
+  }
+
+  const availability = input.availability?.trim().toLowerCase() || "";
+  return availability === "active" || availability === "in_stock";
+}
+
+export function buildCartItem(input: AddCartItemInput): CartItem | null {
+  if (!isValidCartInput(input)) {
+    return null;
+  }
+
   return {
     cartItemId: createCartItemId(input.productId, input.variantId),
     productId: input.productId,
@@ -47,6 +70,8 @@ export function buildCartItem(input: AddCartItemInput): CartItem {
     unitPrice: input.unitPrice,
     currency: input.currency,
     quantity: clampQuantity(input.quantity ?? 1),
+    availability: input.availability,
+    source: "printful",
   };
 }
 
@@ -70,13 +95,14 @@ export function sanitizeCartItems(value: unknown): CartItem[] {
     const unitPrice = toNumberValue(record.unitPrice);
     const currency = toStringValue(record.currency);
     const quantity = toNumberValue(record.quantity);
+    const source = toStringValue(record.source);
+    const availability = toStringValue(record.availability);
 
     if (!productId || !variantId || !productName || !variantName || unitPrice === null || !currency || quantity === null) {
       continue;
     }
 
-    items.push({
-      cartItemId: createCartItemId(productId, variantId),
+    const nextItem = buildCartItem({
       productId,
       variantId,
       productName,
@@ -86,8 +112,16 @@ export function sanitizeCartItems(value: unknown): CartItem[] {
       image: toStringValue(record.image),
       unitPrice,
       currency,
-      quantity: clampQuantity(quantity),
+      quantity,
+      availability,
+      source: isPrintfulSource(source) ? source : "demo",
     });
+
+    if (!nextItem) {
+      continue;
+    }
+
+    items.push(nextItem);
   }
 
   return items;

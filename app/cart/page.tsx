@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 
-import { CartItemRow } from "@/components/cart/cart-item";
+import { CheckoutButton } from "@/components/cart/checkout-button";
 import { useCart } from "@/components/cart/cart-provider";
+import { CartItemRow } from "@/components/cart/cart-item";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { formatCurrency } from "@/lib/currency";
@@ -21,7 +22,7 @@ export default function CartPage() {
             Carrito de compras
           </h1>
           <p className="mobile-safe-copy text-[clamp(1rem,3.8vw,1.125rem)] leading-7 sm:leading-8 text-white/60">
-            Revisa tus variantes reales, ajusta cantidades y deja listo el pedido para la siguiente fase de pago seguro.
+            Revisa tus variantes reales, ajusta cantidades y crea un checkout seguro donde el servidor valida precios y disponibilidad antes de enviarte a Stripe.
           </p>
         </div>
 
@@ -55,11 +56,11 @@ export default function CartPage() {
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span>Envio</span>
-                  <span>Se calcula en la proxima fase</span>
+                  <span>Se calcula en Stripe Checkout</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span>Impuestos</span>
-                  <span>Se calculan en la proxima fase</span>
+                  <span>Se calculan en Stripe Checkout</span>
                 </div>
                 <div className="luxury-divider" />
                 <div className="flex items-center justify-between gap-4 text-base text-ivory">
@@ -68,13 +69,11 @@ export default function CartPage() {
                 </div>
               </div>
               <div className="mt-6 flex flex-col gap-3">
-                <Link href="/checkout" className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-gold/30 bg-gold px-5 py-3 text-center text-xs font-semibold uppercase tracking-[0.16em] text-black compact-tracking">
-                  Finalizar compra
-                </Link>
+                <CheckoutButton />
                 <Link href="/#tienda" className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/12 px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-white/74 compact-tracking">
                   Seguir comprando
                 </Link>
-                <button type="button" onClick={clearCart} className="inline-flex min-h-[3rem] items-center justify-center rounded-full border border-[#5E0D13]/40 bg-[#5E0D13]/20 px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-[#ffb1b1] compact-tracking">
+                <button type="button" onClick={() => clearCart()} className="inline-flex min-h-[3rem] items-center justify-center rounded-full border border-[#5E0D13]/40 bg-[#5E0D13]/20 px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-[#ffb1b1] compact-tracking">
                   Vaciar carrito
                 </button>
               </div>

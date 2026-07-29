@@ -1,5 +1,20 @@
 export type StoreCatalogSource = "demo" | "printful";
 
+export type StoreProductImageRole =
+  | "front"
+  | "back"
+  | "detail"
+  | "model"
+  | "product"
+  | "thumbnail"
+  | "placeholder";
+
+export type StoreProductImage = {
+  url: string;
+  label: string;
+  role: StoreProductImageRole;
+};
+
 export type StoreProductVariant = {
   id: string;
   name: string;
@@ -10,6 +25,8 @@ export type StoreProductVariant = {
   currency: string | null;
   availability: string | null;
   imageUrl: string | null;
+  images: StoreProductImage[];
+  imageDebug: string | null;
 };
 
 export type StoreProduct = {
@@ -18,6 +35,9 @@ export type StoreProduct = {
   name: string;
   description: string;
   imageUrl: string;
+  images: StoreProductImage[];
+  imageDebug: string | null;
+  hasRealMockup: boolean;
   price: number | null;
   currency: string | null;
   badges: string[];
@@ -43,6 +63,7 @@ export type StoreCatalogResponse = {
 };
 
 export type StoreApiErrorCode =
+  | "PRINTFUL_NOT_CONFIGURED"
   | "PRINTFUL_UNAUTHORIZED"
   | "PRINTFUL_FORBIDDEN"
   | "PRINTFUL_NOT_FOUND"

@@ -1,24 +1,17 @@
 import type {
   StoreApiErrorCode,
   StoreProduct,
+  StoreProductImage,
+  StoreProductImageRole,
   StoreProductVariant,
 } from "@/types/store";
 
 const PRINTFUL_API_BASE = "https://api.printful.com";
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_RETRIES = 2;
+const PLACEHOLDER_IMAGE = "/images/mockup-placeholder.svg";
 
-export class PrintfulApiError extends Error {
-  constructor(
-    public readonly code: StoreApiErrorCode,
-    public readonly status: number,
-    message: string,
-    public readonly retryable: boolean,
-  ) {
-    super(message);
-    this.name = "PrintfulApiError";
-  }
-}
+type UnknownRecord = Record<string, unknown>;
 
 type PrintfulListItem = {
   id?: number | string;
@@ -34,7 +27,32 @@ type PrintfulListResponse = {
   result?: PrintfulListItem[];
 };
 
-type UnknownRecord = Record<string, unknown>;
+type ImageCandidate = {
+  url: string;
+  role: StoreProductImageRole;
+  score: number;
+  label: string;
+  debug: string;
+};
+
+type SelectedImages = {
+  primary: string;
+  images: StoreProductImage[];
+  debug: string | null;
+  hasRealMockup: boolean;
+};
+
+export class PrintfulApiError extends Error {
+  constructor(
+    public readonly code: StoreApiErrorCode,
+    public readonly status: number,
+    message: string,
+    public readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = "PrintfulApiError";
+  }
+}
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -227,33 +245,290 @@ export async function printfulFetch<T>(
   );
 }
 
-function pickVariantImage(record: UnknownRecord): string | null {
-  const direct =
-    toStringValue(record.image_url) ||
-    toStringValue(record.thumbnail_url) ||
-    toStringValue(record.preview_url) ||
-    toStringValue(record.product_image);
+function normalizeDescriptor(parts: Array<string | null>) {
+  return parts.filter(Boolean).join(" ").toLowerCase();
+}
 
-  if (direct) {
-    return direct;
+function inferImageRole(descriptor: string): StoreProductImageRole {
+  if (descriptor.includes("front") || descriptor.includes("frontal") || descriptor.includes("front-view")) {
+    return "front";
   }
 
-  const files = toArray(record.files);
-  for (const file of files) {
-    const preview = toStringValue(file.preview_url) || toStringValue(file.thumbnail_url) || toStringValue(file.url);
-    if (preview) {
-      return preview;
+  if (descriptor.includes("model") || descriptor.includes("mannequin") || descriptor.includes("wear") || descriptor.includes("lifestyle") || descriptor.includes("person")) {
+    return "model";
+  }
+
+  if (descriptor.includes("back") || descriptor.includes("rear") || descriptor.includes("posterior")) {
+    return "back";
+  }
+
+  if (descriptor.includes("detail") || descriptor.includes("close") || descriptor.includes("zoom")) {
+    return "detail";
+  }
+
+  if (descriptor.includes("mockup") || descriptor.includes("shirt") || descriptor.includes("t-shirt") || descriptor.includes("tee") || descriptor.includes("hoodie") || descriptor.includes("cap") || descriptor.includes("hat") || descriptor.includes("product")) {
+    return "product";
+  }
+
+  return "thumbnail";
+}
+
+function isArtworkLikeDescriptor(descriptor: string) {
+  return [
+    "artwork",
+    "printfile",
+    "print-file",
+    "design",
+    "poster",
+    "album",
+    "cover",
+    "instagram",
+    "square",
+    "art print",
+    "wall art",
+  ].some((token) => descriptor.includes(token));
+}
+
+function labelForRole(role: StoreProductImageRole) {
+  switch (role) {
+    case "front":
+      return "Vista frontal";
+    case "back":
+      return "Vista trasera";
+    case "detail":
+      return "Detalle";
+    case "model":
+      return "Modelo";
+    case "product":
+      return "Producto";
+    case "thumbnail":
+      return "Thumbnail";
+    default:
+      return "Mockup en preparacion";
+  }
+}
+
+function scoreCandidate(url: string, descriptor: string, role: StoreProductImageRole, sourceHint: string) {
+  let score = 0;
+
+  switch (role) {
+    case "front":
+      score += 600;
+      break;
+    case "model":
+      score += 520;
+      break;
+    case "back":
+      score += 430;
+      break;
+    case "detail":
+      score += 360;
+      break;
+    case "product":
+      score += 300;
+      break;
+    case "thumbnail":
+      score += 180;
+      break;
+    default:
+      break;
+  }
+
+  if (sourceHint.includes("preview")) {
+    score += 40;
+  }
+
+  if (sourceHint.includes("thumbnail")) {
+    score -= 20;
+  }
+
+  if (descriptor.includes("white") || descriptor.includes("studio") || descriptor.includes("isolated")) {
+    score += 20;
+  }
+
+  if (descriptor.includes("flat") || descriptor.includes("folded")) {
+    score += 12;
+  }
+
+  if (isArtworkLikeDescriptor(descriptor)) {
+    score -= 500;
+  }
+
+  if (url.includes("printfiles") || url.includes("artwork") || url.includes("design")) {
+    score -= 500;
+  }
+
+  return score;
+}
+
+function buildCandidate(url: string | null, descriptorParts: Array<string | null>, sourceHint: string): ImageCandidate | null {
+  if (!url) {
+    return null;
+  }
+
+  const descriptor = normalizeDescriptor([...descriptorParts, sourceHint, url]);
+  const role = inferImageRole(descriptor);
+  const score = scoreCandidate(url, descriptor, role, sourceHint);
+
+  return {
+    url,
+    role,
+    score,
+    label: labelForRole(role),
+    debug: `${sourceHint}:${descriptor}`,
+  };
+}
+
+function dedupeAndSelectImages(candidates: Array<ImageCandidate | null>): SelectedImages {
+  const byUrl = new Map<string, ImageCandidate>();
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    const current = byUrl.get(candidate.url);
+    if (!current || candidate.score > current.score) {
+      byUrl.set(candidate.url, candidate);
     }
   }
 
-  return null;
+  const ordered = Array.from(byUrl.values()).sort((a, b) => b.score - a.score);
+  const usable = ordered.filter((candidate) => candidate.score >= 180 && candidate.role !== "thumbnail");
+  const backup = ordered.filter((candidate) => candidate.score >= 120);
+  const chosen = usable.length > 0 ? usable : backup;
+  const hasRealMockup = usable.length > 0;
+
+  if (chosen.length === 0 || !hasRealMockup) {
+    return {
+      primary: PLACEHOLDER_IMAGE,
+      images: [{ url: PLACEHOLDER_IMAGE, role: "placeholder", label: "Mockup en preparacion" }],
+      debug: ordered[0]?.debug || "Printful no devolvio mockups aptos para mostrar como prenda.",
+      hasRealMockup: false,
+    };
+  }
+
+  return {
+    primary: chosen[0].url,
+    images: chosen.slice(0, 4).map((candidate) => ({
+      url: candidate.url,
+      role: candidate.role,
+      label: candidate.label,
+    })),
+    debug: chosen[0]?.debug || null,
+    hasRealMockup,
+  };
+}
+
+function buildProductImageCandidates(record: UnknownRecord, fallbackThumbnail: string | null) {
+  const recordDescriptor = normalizeDescriptor([
+    toStringValue(record.name),
+    toStringValue(record.title),
+    toStringValue(record.type),
+    toStringValue(record.placement),
+    toStringValue(record.option),
+    toStringValue(record.technique),
+  ]);
+
+  const files = toArray(record.files);
+  const fileCandidates = files.flatMap((file) => {
+    const fileDescriptorParts = [
+      toStringValue(file.name),
+      toStringValue(file.filename),
+      toStringValue(file.title),
+      toStringValue(file.type),
+      toStringValue(file.placement),
+      toStringValue(file.option),
+      toStringValue(file.display_name),
+      toStringValue(file.position),
+      recordDescriptor,
+    ];
+
+    return [
+      buildCandidate(toStringValue(file.preview_url), fileDescriptorParts, "file-preview"),
+      buildCandidate(toStringValue(file.thumbnail_url), fileDescriptorParts, "file-thumbnail"),
+      buildCandidate(toStringValue(file.url), fileDescriptorParts, "file-url"),
+    ];
+  });
+
+  return [
+    buildCandidate(toStringValue(record.preview_url), [recordDescriptor], "record-preview"),
+    buildCandidate(toStringValue(record.image_url), [recordDescriptor], "record-image"),
+    buildCandidate(toStringValue(record.product_image), [recordDescriptor], "record-product-image"),
+    buildCandidate(toStringValue(record.thumbnail_url), [recordDescriptor], "record-thumbnail"),
+    buildCandidate(fallbackThumbnail, [recordDescriptor], "fallback-thumbnail"),
+    ...fileCandidates,
+  ];
+}
+
+function toTitleCase(value: string) {
+  return value
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function normalizeProductName(rawName: string) {
+  const normalized = rawName.trim();
+  const upper = normalized.toUpperCase();
+
+  if (upper.includes("MANY ROSS") && upper.includes("T-SHIRT") && upper.includes("002")) {
+    return "Camiseta Many Ross - Nivel Leyenda";
+  }
+
+  if (upper.includes("NIVEL LEYENDA") && upper.includes("T-SHIRT")) {
+    return "Camiseta Many Ross - Nivel Leyenda";
+  }
+
+  if (upper.includes("T-SHIRT") || upper.includes("TEE")) {
+    return "Camiseta Many Ross";
+  }
+
+  if (upper.includes("HOODIE")) {
+    return "Hoodie Many Ross";
+  }
+
+  if (upper.includes("CAP") || upper.includes("HAT")) {
+    return "Gorra Many Ross";
+  }
+
+  return normalized
+    .replace(/^MANY ROSS\s*/i, "")
+    .replace(/\b(T-SHIRT|TEE|HOODIE|CAP|HAT)\b/gi, (match) => match.toUpperCase())
+    .replace(/\s{2,}/g, " ")
+    .trim() || toTitleCase(normalized);
+}
+
+function buildMarketingDescription(name: string) {
+  if (name.includes("Nivel Leyenda")) {
+    return "Camiseta oficial Many Ross con diseno Nivel Leyenda.";
+  }
+
+  if (name.includes("Camiseta")) {
+    return "Camiseta oficial Many Ross con presencia premium y estilo urbano.";
+  }
+
+  if (name.includes("Hoodie")) {
+    return "Hoodie oficial Many Ross para un look premium de escenario y calle.";
+  }
+
+  if (name.includes("Gorra")) {
+    return "Gorra oficial Many Ross para completar el drop con identidad propia.";
+  }
+
+  return "Producto oficial Many Ross creado para una compra rapida y clara.";
 }
 
 function normalizeVariant(record: UnknownRecord, fallbackImage: string | null): StoreProductVariant {
   const product = (record.product && typeof record.product === "object" ? record.product : null) as UnknownRecord | null;
   const size = toStringValue(record.size) || toStringValue(product?.size);
   const color = toStringValue(record.color) || toStringValue(product?.color);
-  const imageUrl = pickVariantImage(record) || fallbackImage;
+  const selectedImages = dedupeAndSelectImages([
+    ...buildProductImageCandidates(record, fallbackImage),
+    ...buildProductImageCandidates(product || {}, fallbackImage),
+  ]);
 
   return {
     id: toStringValue(record.id) || crypto.randomUUID(),
@@ -268,7 +543,9 @@ function normalizeVariant(record: UnknownRecord, fallbackImage: string | null): 
     price: toNumberValue(record.retail_price),
     currency: toStringValue(record.currency) || "USD",
     availability: toStringValue(record.availability_status) || toStringValue(record.availability) || null,
-    imageUrl,
+    imageUrl: selectedImages.primary,
+    images: selectedImages.images,
+    imageDebug: selectedImages.debug,
   };
 }
 
@@ -289,13 +566,19 @@ function normalizeAvailability(syncProduct: UnknownRecord, variants: StoreProduc
   return "unknown";
 }
 
-function buildDescription(name: string, variants: StoreProductVariant[]): string {
-  const colors = Array.from(new Set(variants.map((variant) => variant.color).filter(Boolean))).slice(0, 2);
-  const sizes = Array.from(new Set(variants.map((variant) => variant.size).filter(Boolean))).slice(0, 3);
-  const colorCopy = colors.length > 0 ? ` en ${colors.join(" y ")}` : "";
-  const sizeCopy = sizes.length > 0 ? ` con tallas ${sizes.join(", ")}` : "";
+function selectProductImages(syncProduct: UnknownRecord, item: PrintfulListItem, variants: StoreProductVariant[]) {
+  const fallbackThumbnail = toStringValue(syncProduct.thumbnail_url) || item.thumbnail_url || null;
+  const variantCandidates = variants.flatMap((variant) =>
+    variant.images.map((image) =>
+      buildCandidate(image.url, [image.label, variant.name], `variant-${image.role}`),
+    ),
+  );
 
-  return `${name}${colorCopy}${sizeCopy}, sincronizado desde Printful para el universo oficial de Many Ross.`;
+  return dedupeAndSelectImages([
+    ...buildProductImageCandidates(syncProduct, fallbackThumbnail),
+    buildCandidate(item.thumbnail_url || null, [item.name || null], "list-thumbnail"),
+    ...variantCandidates,
+  ]);
 }
 
 export async function getPrintfulCatalog(): Promise<StoreProduct[]> {
@@ -317,20 +600,24 @@ export async function getPrintfulCatalog(): Promise<StoreProduct[]> {
       const result = detailResponse.result && typeof detailResponse.result === "object" ? detailResponse.result : {};
       const syncProduct = (result.sync_product && typeof result.sync_product === "object" ? result.sync_product : {}) as UnknownRecord;
       const variants = toArray(result.sync_variants).map((variant) => normalizeVariant(variant, toStringValue(syncProduct.thumbnail_url)));
+      const selectedImages = selectProductImages(syncProduct, item, variants);
       const price = variants.find((variant) => variant.price !== null)?.price ?? null;
       const currency = variants.find((variant) => variant.currency)?.currency ?? "USD";
-      const name = toStringValue(syncProduct.name) || item.name || "Producto Many Ross";
-      const imageUrl = toStringValue(syncProduct.thumbnail_url) || variants.find((variant) => variant.imageUrl)?.imageUrl || "/images/titanio-y-salitre-cover.png";
+      const rawName = toStringValue(syncProduct.name) || item.name || "Producto Many Ross";
+      const name = normalizeProductName(rawName);
 
       return {
         id: productId,
         externalId: toStringValue(syncProduct.external_id) || item.external_id || null,
         name,
-        description: buildDescription(name, variants),
-        imageUrl,
+        description: buildMarketingDescription(name),
+        imageUrl: selectedImages.primary,
+        images: selectedImages.images,
+        imageDebug: selectedImages.debug,
+        hasRealMockup: selectedImages.hasRealMockup,
         price,
         currency,
-        badges: [variants.length > 1 ? "Variantes reales" : "Catalogo real"],
+        badges: ["Catalogo oficial"],
         availability: normalizeAvailability(syncProduct, variants),
         variantCount: variants.length,
         variants,

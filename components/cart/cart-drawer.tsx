@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
+import { CheckoutButton } from "@/components/cart/checkout-button";
 import { CartItemRow } from "@/components/cart/cart-item";
 import { useCart } from "@/components/cart/cart-provider";
 import { formatCurrency } from "@/lib/currency";
@@ -105,13 +106,11 @@ export function CartDrawer() {
                 >
                   Ver carrito
                 </Link>
-                <Link
-                  href="/checkout"
-                  className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-gold/30 bg-gold px-5 py-3 text-center text-xs font-semibold uppercase tracking-[0.16em] text-black compact-tracking"
-                  onClick={closeCart}
-                >
-                  Finalizar compra
-                </Link>
+                <CheckoutButton
+                  className="min-h-[3.25rem]"
+                  errorClassName="text-right sm:text-left"
+                  onRedirectStart={closeCart}
+                />
               </div>
             </div>
           </>

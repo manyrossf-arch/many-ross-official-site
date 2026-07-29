@@ -1,0 +1,17 @@
+<svg width="960" height="1200" viewBox="0 0 960 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="1200" rx="48" fill="#121212"/>
+  <rect x="56" y="56" width="848" height="1088" rx="40" fill="#F3EFE6" fill-opacity="0.96"/>
+  <rect x="96" y="96" width="768" height="1008" rx="32" fill="#FAF7F0"/>
+  <path d="M350 220C350 176.922 384.922 142 428 142H532C575.078 142 610 176.922 610 220V248L706 300C732.898 314.568 748.692 343.087 746.249 373.576L716 752H244L213.751 373.576C211.308 343.087 227.102 314.568 254 300L350 248V220Z" fill="#1A1A1A"/>
+  <path d="M428 142H532C575.078 142 610 176.922 610 220V248L557 284H403L350 248V220C350 176.922 384.922 142 428 142Z" fill="#242424"/>
+  <path d="M396 224C396 186.445 426.445 156 464 156H496C533.555 156 564 186.445 564 224V274H396V224Z" fill="#EFEAE1"/>
+  <path d="M260 742H700L668 1032C664.516 1063.55 637.844 1087.39 606.106 1087.39H353.894C322.156 1087.39 295.484 1063.55 292 1032L260 742Z" fill="#151515"/>
+  <path d="M304 820H656" stroke="#2F2F2F" stroke-width="8" stroke-linecap="round"/>
+  <path d="M330 894H630" stroke="#2F2F2F" stroke-width="8" stroke-linecap="round"/>
+  <path d="M350 968H610" stroke="#2F2F2F" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="480" cy="548" r="112" fill="#0D0D0D"/>
+  <circle cx="480" cy="548" r="110" stroke="#C9A24B" stroke-opacity="0.6" stroke-width="4"/>
+  <path d="M434 504H527.2C564 504 591 523.2 591 563.2C591 610.4 555.2 630.4 512.8 630.4H489.6V696H434V504ZM489.6 588H507.2C528 588 535.2 578.4 535.2 564.8C535.2 549.6 524.8 542.4 506.4 542.4H489.6V588Z" fill="#F3EFE6"/>
+  <text x="480" y="805" text-anchor="middle" fill="#B78A2A" font-family="Arial, sans-serif" font-size="38" letter-spacing="6">MOCKUP EN PREPARACION</text>
+  <text x="480" y="854" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="24" letter-spacing="3">Many Ross Universo</text>
+</svg>

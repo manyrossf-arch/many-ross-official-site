@@ -20,12 +20,16 @@ import {
 } from "@/lib/cart";
 import type { AddCartItemInput, CartItem } from "@/types/cart";
 
+type ClearCartOptions = {
+  silent?: boolean;
+};
+
 type CartContextValue = {
   cartItems: CartItem[];
   addItem: (input: AddCartItemInput) => void;
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
-  clearCart: () => void;
+  clearCart: (options?: ClearCartOptions) => void;
   totalItems: number;
   subtotal: number;
   currency: string;
@@ -89,6 +93,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback((input: AddCartItemInput) => {
     const nextItem = buildCartItem(input);
 
+    if (!nextItem) {
+      announce("Solo las variantes reales sincronizadas desde Printful pueden agregarse al carrito.");
+      return;
+    }
+
     setCartItems((current) => {
       const existing = current.find((item) => item.cartItemId === nextItem.cartItemId);
 
@@ -122,9 +131,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const clearCart = useCallback(() => {
+  const clearCart = useCallback((options?: ClearCartOptions) => {
     setCartItems([]);
-    announce("Carrito vaciado.");
+
+    if (!options?.silent) {
+      announce("Carrito vaciado.");
+    }
   }, [announce]);
 
   const openCart = useCallback(() => setIsCartOpen(true), []);

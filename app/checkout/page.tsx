@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { CheckoutButton } from "@/components/cart/checkout-button";
 import { useCart } from "@/components/cart/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -17,19 +18,22 @@ export default function CheckoutPage() {
         <div className="glass-panel rounded-[38px] p-8 sm:p-10">
           <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
             <div className="space-y-5 min-w-0">
-              <p className="eyebrow">Checkout | Fase 2</p>
+              <p className="eyebrow">Checkout | Stripe Test</p>
               <h1 className="mobile-safe-title fluid-section-title compact-tracking font-display uppercase text-ivory">
-                Estamos preparando el pago seguro
+                Pago seguro validado desde el servidor
               </h1>
               <p className="mobile-safe-copy text-[clamp(1rem,3.8vw,1.125rem)] leading-7 sm:leading-8 text-white/62">
-                Tu carrito ya esta listo. En la siguiente fase, el servidor recibira solo los variantId y cantidades, validara los precios reales y creara una sesion segura de Stripe Checkout.
+                Al continuar, el navegador envia solamente los <span className="text-gold">variantId</span> y las cantidades. El servidor vuelve a consultar Printful, confirma precios reales y genera una sesion segura de Stripe en modo prueba.
               </p>
               <p className="mobile-safe-copy text-sm leading-7 text-white/54">
-                El envio y los impuestos se calcularan durante el flujo de pago seguro cuando conectemos Stripe y la validacion server-side del catalogo.
+                Si una variante cambia, se agota o la moneda no coincide, el checkout se bloquea antes de cobrar para proteger la tienda y evitar datos manipulados en el cliente.
               </p>
-              <Link href="/cart" className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/12 px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-white/74 compact-tracking">
-                Volver al carrito
-              </Link>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <CheckoutButton className="sm:w-auto sm:px-7" />
+                <Link href="/cart" className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full border border-white/12 px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-white/74 compact-tracking">
+                  Volver al carrito
+                </Link>
+              </div>
             </div>
 
             <aside className="rounded-[30px] border border-white/10 bg-black/30 p-6 min-w-0">
@@ -37,15 +41,21 @@ export default function CheckoutPage() {
                 Resumen actual
               </h2>
               <div className="mt-6 space-y-3 text-sm text-white/62">
-                {cartItems.map((item) => (
-                  <div key={item.cartItemId} className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="mobile-safe-title text-sm uppercase tracking-[0.12em] text-ivory compact-tracking">{item.productName}</p>
-                      <p className="text-xs text-white/48">{item.variantName} x {item.quantity}</p>
+                {cartItems.length === 0 ? (
+                  <p className="mobile-safe-copy text-sm leading-7 text-white/54">
+                    Tu carrito esta vacio. Agrega una variante real desde la tienda para probar Stripe Checkout.
+                  </p>
+                ) : (
+                  cartItems.map((item) => (
+                    <div key={item.cartItemId} className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="mobile-safe-title text-sm uppercase tracking-[0.12em] text-ivory compact-tracking">{item.productName}</p>
+                        <p className="text-xs text-white/48">{item.variantName} x {item.quantity}</p>
+                      </div>
+                      <span className="shrink-0 text-gold">{formatCurrency(item.unitPrice * item.quantity, item.currency)}</span>
                     </div>
-                    <span className="shrink-0 text-gold">{formatCurrency(item.unitPrice * item.quantity, item.currency)}</span>
-                  </div>
-                ))}
+                  ))
+                )}
                 <div className="luxury-divider" />
                 <div className="flex items-center justify-between gap-4 text-base text-ivory">
                   <span>Subtotal</span>

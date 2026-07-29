@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { getDemoStoreCatalog } from "@/lib/demo-store";
 import { getPrintfulCatalog, hasPrintfulToken, PrintfulApiError } from "@/lib/printful/client";
 import type { StoreApiErrorResponse, StoreCatalogResponse } from "@/types/store";
 
@@ -14,8 +13,17 @@ function jsonHeaders() {
 
 export async function GET() {
   if (!hasPrintfulToken()) {
-    return NextResponse.json(getDemoStoreCatalog(), {
-      status: 200,
+    const payload: StoreApiErrorResponse = {
+      error: {
+        code: "PRINTFUL_NOT_CONFIGURED",
+        status: 503,
+        message: "El catalogo real de Printful no esta configurado en este entorno. La tienda comprable queda temporalmente no disponible.",
+        retryable: false,
+      },
+    };
+
+    return NextResponse.json(payload, {
+      status: 503,
       headers: jsonHeaders(),
     });
   }

@@ -2,6 +2,18 @@ import type { StoreCatalogResponse, StoreProduct } from "@/types/store";
 
 const DEMO_REVALIDATE_SECONDS = 120;
 
+const demoFrontImage = {
+  url: "/images/titanio-y-salitre-tee.png",
+  label: "Vista frontal",
+  role: "front",
+} as const;
+
+const demoCapImage = {
+  url: "/images/nivel-leyenda-cap.png",
+  label: "Vista frontal",
+  role: "front",
+} as const;
+
 export const demoStoreProducts: StoreProduct[] = [
   {
     id: "demo-tee",
@@ -10,6 +22,9 @@ export const demoStoreProducts: StoreProduct[] = [
     description:
       "Una pieza nacida del golpe, la transformacion y la identidad. Merch visual para una historia que no se quiebra.",
     imageUrl: "/images/titanio-y-salitre-tee.png",
+    images: [demoFrontImage],
+    imageDebug: "Demo visual sin mockups reales de Printful.",
+    hasRealMockup: false,
     price: 54,
     currency: "USD",
     badges: ["Edicion Limitada"],
@@ -26,6 +41,8 @@ export const demoStoreProducts: StoreProduct[] = [
         currency: "USD",
         availability: "active",
         imageUrl: "/images/titanio-y-salitre-tee.png",
+        images: [demoFrontImage],
+        imageDebug: "Demo visual sin mockups reales de Printful.",
       },
       {
         id: "demo-tee-black-xl",
@@ -37,6 +54,8 @@ export const demoStoreProducts: StoreProduct[] = [
         currency: "USD",
         availability: "active",
         imageUrl: "/images/titanio-y-salitre-tee.png",
+        images: [demoFrontImage],
+        imageDebug: "Demo visual sin mockups reales de Printful.",
       },
     ],
     source: "demo",
@@ -48,6 +67,9 @@ export const demoStoreProducts: StoreProduct[] = [
     description:
       "Una gorra para llevar cicatrices convertidas en vision. Identidad urbana con presencia de escenario internacional.",
     imageUrl: "/images/nivel-leyenda-cap.png",
+    images: [demoCapImage],
+    imageDebug: "Demo visual sin mockups reales de Printful.",
+    hasRealMockup: false,
     price: 42,
     currency: "USD",
     badges: ["Drop Exclusivo"],
@@ -64,6 +86,8 @@ export const demoStoreProducts: StoreProduct[] = [
         currency: "USD",
         availability: "active",
         imageUrl: "/images/nivel-leyenda-cap.png",
+        images: [demoCapImage],
+        imageDebug: "Demo visual sin mockups reales de Printful.",
       },
     ],
     source: "demo",

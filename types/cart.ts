@@ -1,3 +1,5 @@
+import type { StoreCatalogSource } from "@/types/store";
+
 export type CartItem = {
   cartItemId: string;
   productId: string;
@@ -10,10 +12,13 @@ export type CartItem = {
   unitPrice: number;
   currency: string;
   quantity: number;
+  availability: string | null;
+  source: Extract<StoreCatalogSource, "printful">;
 };
 
-export type AddCartItemInput = Omit<CartItem, "cartItemId" | "quantity"> & {
+export type AddCartItemInput = Omit<CartItem, "cartItemId" | "quantity" | "source"> & {
   quantity?: number;
+  source: StoreCatalogSource;
 };
 
 export type CartTotals = {

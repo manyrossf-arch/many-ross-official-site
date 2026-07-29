@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { AlertCircle, LoaderCircle, RefreshCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { StoreProductDisplay } from "@/components/cart/store-product-display";
 import { FadeIn } from "@/components/motion/fade-in";
+import { demoStoreProducts } from "@/lib/demo-store";
 import { phrases, storeCategories } from "@/lib/site-data";
 import type { StoreApiErrorResponse, StoreCatalogResponse } from "@/types/store";
 
@@ -14,12 +15,9 @@ type StoreState = {
   error: StoreApiErrorResponse["error"] | null;
 };
 
-type FilterSource = "all" | "printful" | "demo";
-
 type ActiveFilters = {
   color: string;
   size: string;
-  source: FilterSource;
 };
 
 const initialState: StoreState = {
@@ -31,7 +29,6 @@ const initialState: StoreState = {
 const defaultFilters: ActiveFilters = {
   color: "all",
   size: "all",
-  source: "all",
 };
 
 function uniqueValues(values: Array<string | null>, limit = 99) {
@@ -47,9 +44,8 @@ function matchesFilters(
 
   const matchesColor = filters.color === "all" || colors.includes(filters.color);
   const matchesSize = filters.size === "all" || sizes.includes(filters.size);
-  const matchesSource = filters.source === "all" || product.source === filters.source;
 
-  return matchesColor && matchesSize && matchesSource;
+  return matchesColor && matchesSize;
 }
 
 function FilterChip({
@@ -107,7 +103,7 @@ export function StoreSection() {
         error: {
           code: "PRINTFUL_NETWORK_ERROR",
           status: 502,
-          message: "No fue posible cargar el catalogo desde el navegador. Intenta de nuevo.",
+          message: "No fue posible cargar el catalogo real desde el navegador. Intenta de nuevo.",
           retryable: true,
         },
       });
@@ -127,20 +123,19 @@ export function StoreSection() {
 
   const featuredProduct = filteredProducts[0] ?? null;
   const remainingProducts = filteredProducts.slice(1);
-  const isDemo = storeState.data?.source === "demo";
-  const isEmpty = storeState.status === "ready" && !isDemo && products.length === 0;
+  const isEmpty = storeState.status === "ready" && products.length === 0;
   const hasFilteredResults = filteredProducts.length > 0;
-  const hasActiveFilters = filters.color !== "all" || filters.size !== "all" || filters.source !== "all";
+  const hasActiveFilters = filters.color !== "all" || filters.size !== "all";
 
   return (
     <section id="tienda" className="section-shell space-y-12 py-24">
       <FadeIn className="section-heading min-w-0">
-        <p className="eyebrow">Tienda + Printful API</p>
+        <p className="eyebrow">Tienda oficial</p>
         <h2 className="mobile-safe-title fluid-section-title compact-tracking font-display uppercase text-ivory">
-          Merch premium con catalogo visual listo para convertirse en tienda oficial.
+          Descubre la coleccion oficial de Many Ross Universo.
         </h2>
         <p className="mobile-safe-copy text-[clamp(1rem,3.8vw,1.125rem)] leading-7 sm:leading-8 text-white/60">
-          Ahora puedes elegir variantes reales, agregarlas al carrito y preparar el flujo de compra seguro sin romper la integracion actual con Printful.
+          Explora cada prenda, abre su vista detallada y elige tu color y talla con una experiencia clara, premium y enfocada en compra.
         </p>
       </FadeIn>
 
@@ -158,7 +153,7 @@ export function StoreSection() {
         })}
       </FadeIn>
 
-      {storeState.status === "ready" && storeState.data?.meta.message ? (
+      {storeState.status === "ready" && storeState.data?.meta.message && storeState.data.source !== "printful" ? (
         <FadeIn delay={0.1}>
           <div className="mobile-safe-copy rounded-[28px] border border-gold/18 bg-gold/10 px-5 py-4 text-sm leading-7 text-white/76">
             {storeState.data.meta.message}
@@ -172,9 +167,9 @@ export function StoreSection() {
             <div className="flex min-w-0 flex-col gap-6">
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div className="min-w-0">
-                  <p className="eyebrow">Filtros visuales</p>
+                  <p className="eyebrow">Filtra tu drop</p>
                   <h3 className="mobile-safe-title fluid-card-title compact-tracking font-display uppercase text-ivory">
-                    Curar el drop por color, talla y origen
+                    Encuentra tu pieza por color y talla
                   </h3>
                 </div>
                 <p className="text-sm uppercase tracking-[0.14em] text-white/54 compact-tracking text-balance">
@@ -183,15 +178,6 @@ export function StoreSection() {
               </div>
 
               <div className="space-y-5 min-w-0">
-                <div>
-                  <p className="mb-3 text-[10px] uppercase tracking-[0.16em] text-white/46 compact-eyebrow">Origen</p>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip label="Todos" active={filters.source === "all"} onClick={() => setFilters((current) => ({ ...current, source: "all" }))} />
-                    <FilterChip label="Printful API" active={filters.source === "printful"} onClick={() => setFilters((current) => ({ ...current, source: "printful" }))} />
-                    <FilterChip label="Demo visual" active={filters.source === "demo"} onClick={() => setFilters((current) => ({ ...current, source: "demo" }))} />
-                  </div>
-                </div>
-
                 {colorOptions.length > 0 ? (
                   <div>
                     <p className="mb-3 text-[10px] uppercase tracking-[0.16em] text-white/46 compact-eyebrow">Color</p>
@@ -245,7 +231,7 @@ export function StoreSection() {
           {storeState.status === "loading" ? (
             <div className="glass-panel rounded-[34px] p-8 text-center">
               <LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-gold" />
-              <p className="text-sm text-white/60">Cargando catalogo y variantes reales...</p>
+              <p className="text-sm text-white/60">Cargando la coleccion oficial...</p>
             </div>
           ) : null}
 
@@ -258,7 +244,7 @@ export function StoreSection() {
                   </div>
                   <div className="min-w-0 space-y-3">
                     <p className="mobile-safe-title fluid-card-title compact-tracking font-display uppercase text-ivory">
-                      No se pudo cargar el catalogo real
+                      Catalogo real temporalmente no disponible
                     </p>
                     <p className="mobile-safe-copy text-sm leading-7 text-white/68">{storeState.error.message}</p>
                     <button type="button" onClick={() => void loadCatalog()} className="inline-flex min-h-[3rem] max-w-full items-center gap-2 rounded-full border border-gold/30 px-5 py-3 text-center text-xs uppercase tracking-[0.16em] text-gold transition hover:bg-gold/10 whitespace-normal compact-tracking">
@@ -292,7 +278,7 @@ export function StoreSection() {
                   Ninguna pieza coincide con estos filtros
                 </p>
                 <p className="mobile-safe-copy mt-3 text-sm leading-7 text-white/64">
-                  Prueba otra combinacion de color, talla u origen para volver a expandir el drop.
+                  Prueba otra combinacion de color o talla para volver a expandir el drop.
                 </p>
               </div>
             </FadeIn>
@@ -307,6 +293,27 @@ export function StoreSection() {
               ))}
             </div>
           ) : null}
+
+          <FadeIn delay={0.24}>
+            <div className="glass-panel rounded-[34px] border border-white/10 p-6 sm:p-8">
+              <div className="space-y-3">
+                <p className="eyebrow">Vista previa editorial</p>
+                <h3 className="mobile-safe-title fluid-card-title compact-tracking font-display uppercase text-ivory">
+                  Mockups demo sin compra habilitada
+                </h3>
+                <p className="mobile-safe-copy text-sm leading-7 text-white/64">
+                  Estas tarjetas fueron las que antes alimentaban el flujo demo. Ahora quedan separadas como referencia visual y nunca construyen variantes comprables ni llegan al carrito.
+                </p>
+              </div>
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                {demoStoreProducts.map((product, index) => (
+                  <FadeIn key={product.id} delay={0.26 + index * 0.08}>
+                    <StoreProductDisplay product={product} />
+                  </FadeIn>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
         </div>
 
         <FadeIn delay={0.2}>
