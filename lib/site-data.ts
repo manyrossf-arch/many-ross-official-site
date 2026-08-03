@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+﻿import type { LucideIcon } from "lucide-react";
 import {
   Disc3,
   Instagram,
@@ -78,7 +78,7 @@ export const releases = [
     year: "2026",
     description:
       "Canal oficial para videos, Shorts y estrategia audiovisual enfocada en crecimiento y monetizacion.",
-    image: "/images/titanio-y-salitre-cover.png",
+    image: "/images/USAR ESTA PARA LA TARJETA DE YOUTUBE.png",
     href: siteConfig.links.youtube,
   },
   {
@@ -87,7 +87,7 @@ export const releases = [
     year: "2026",
     description:
       "Acceso editorial al universo sonoro de Many Ross en una experiencia clean y premium.",
-    image: "/images/titanio-y-salitre-cover.png",
+    image: "/images/many-ross-official-poster.jpeg",
     href: siteConfig.links.appleMusic,
   },
 ];
