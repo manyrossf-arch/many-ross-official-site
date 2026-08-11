@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { getPrintfulCatalog, hasPrintfulToken, PrintfulApiError } from "@/lib/printful/client";
@@ -25,13 +25,14 @@ type CheckoutItemInput = {
 };
 
 type CheckoutFailureStep =
-  | "validacion del carrito"
+  | "validate_cart"
   | "PRINTFUL_API_TOKEN"
-  | "consulta a Printful"
+  | "fetch_printful_product"
+  | "fetch_printful_variant"
+  | "validate_price"
   | "NEXT_PUBLIC_SITE_URL"
-  | "STRIPE_SECRET_KEY"
-  | "creacion de Stripe Checkout Session"
-  | "cualquier otra excepcion";
+  | "create_stripe_checkout_session"
+  | "unexpected_error";
 
 class CheckoutHttpError extends Error {
   constructor(
@@ -58,7 +59,7 @@ function createPublicMessage(status: number, step: CheckoutFailureStep) {
     return "No se pudo preparar el checkout seguro.";
   }
 
-  if (step === "validacion del carrito") {
+  if (step === "validate_cart") {
     return "No se pudo validar el carrito enviado al checkout.";
   }
 
@@ -89,47 +90,88 @@ function buildErrorResponse(error: CheckoutHttpError) {
   );
 }
 
+function sanitizeMessage(message: string) {
+  return message
+    .replace(/sk_(test|live)_[A-Za-z0-9]+/gi, "[redacted_stripe_key]")
+    .replace(/pfk_[A-Za-z0-9_]+/gi, "[redacted_printful_token]")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/authorization/gi, "[redacted_header]");
+}
+
+function logCheckoutError(error: CheckoutHttpError, originalError?: unknown) {
+  const payload: Record<string, unknown> = {
+    step: error.step,
+    status: error.status,
+    errorName:
+      originalError instanceof Error
+        ? originalError.name
+        : error instanceof Error
+          ? error.name
+          : "UnknownError",
+    message: sanitizeMessage(error.message),
+  };
+
+  if (originalError instanceof PrintfulApiError) {
+    payload.printful = {
+      endpoint: error.step === "fetch_printful_variant" ? "/store/products/:id" : "/store/products",
+      status: originalError.status,
+      message: sanitizeMessage(originalError.message),
+    };
+  }
+
+  if (originalError instanceof Stripe.errors.StripeError) {
+    payload.stripe = {
+      type: originalError.type,
+      code: originalError.code || null,
+      message: sanitizeMessage(originalError.message),
+      statusCode: originalError.statusCode || null,
+    };
+  }
+
+  console.error("[api/checkout]", payload);
+}
+
 function normalizeItems(payload: unknown): CheckoutItemInput[] {
   if (!isRecord(payload) || !hasOnlyKeys(payload, ["items"])) {
-    throw new CheckoutHttpError(400, "validacion del carrito", "El cuerpo del checkout debe contener solamente la propiedad items.");
+    throw new CheckoutHttpError(400, "validate_cart", "El cuerpo del checkout debe contener solamente la propiedad items.");
   }
 
   const rawItems = payload.items;
 
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
-    throw new CheckoutHttpError(400, "validacion del carrito", "Debes enviar al menos un producto para crear el checkout.");
+    throw new CheckoutHttpError(400, "validate_cart", "Debes enviar al menos un producto para crear el checkout.");
   }
 
   if (rawItems.length > MAX_LINES) {
-    throw new CheckoutHttpError(400, "validacion del carrito", `El checkout permite un maximo de ${MAX_LINES} lineas por solicitud.`);
+    throw new CheckoutHttpError(400, "validate_cart", `El checkout permite un maximo de ${MAX_LINES} lineas por solicitud.`);
   }
 
   const grouped = new Map<string, number>();
 
   for (const rawItem of rawItems) {
     if (!isRecord(rawItem) || !hasOnlyKeys(rawItem, ["variantId", "quantity"])) {
-      throw new CheckoutHttpError(400, "validacion del carrito", "Cada item solo puede incluir variantId y quantity.");
+      throw new CheckoutHttpError(400, "validate_cart", "Cada item solo puede incluir variantId y quantity.");
     }
 
     const variantId = typeof rawItem.variantId === "string" ? rawItem.variantId.trim() : "";
     const quantity = typeof rawItem.quantity === "number" ? rawItem.quantity : NaN;
 
     if (!variantId) {
-      throw new CheckoutHttpError(400, "validacion del carrito", "Cada item debe incluir un variantId valido.");
+      throw new CheckoutHttpError(400, "validate_cart", "Cada item debe incluir un variantId valido.");
     }
 
     if (hasMockLikeId(variantId)) {
-      throw new CheckoutHttpError(409, "validacion del carrito", `La variante ${variantId} pertenece a un producto demo/mock y no puede procesarse.`);
+      throw new CheckoutHttpError(409, "validate_cart", `La variante ${variantId} pertenece a un producto demo/mock y no puede procesarse.`);
     }
 
     if (!Number.isInteger(quantity) || quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
-      throw new CheckoutHttpError(400, "validacion del carrito", `La cantidad por item debe estar entre ${MIN_QUANTITY} y ${MAX_QUANTITY}.`);
+      throw new CheckoutHttpError(400, "validate_cart", `La cantidad por item debe estar entre ${MIN_QUANTITY} y ${MAX_QUANTITY}.`);
     }
 
     const nextQuantity = (grouped.get(variantId) || 0) + quantity;
 
     if (nextQuantity > MAX_QUANTITY) {
-      throw new CheckoutHttpError(400, "validacion del carrito", `La variante ${variantId} supera la cantidad maxima permitida de ${MAX_QUANTITY}.`);
+      throw new CheckoutHttpError(400, "validate_cart", `La variante ${variantId} supera la cantidad maxima permitida de ${MAX_QUANTITY}.`);
     }
 
     grouped.set(variantId, nextQuantity);
@@ -144,11 +186,15 @@ function normalizeUnknownError(error: unknown) {
   }
 
   if (error instanceof PrintfulApiError) {
-    return new CheckoutHttpError(error.status >= 500 ? 502 : error.status, "consulta a Printful", error.message);
+    return new CheckoutHttpError(
+      error.status >= 500 ? 502 : error.status,
+      error.status === 404 ? "fetch_printful_variant" : "fetch_printful_product",
+      error.message,
+    );
   }
 
   if (error instanceof Stripe.errors.StripeError) {
-    return new CheckoutHttpError(502, "creacion de Stripe Checkout Session", error.message);
+    return new CheckoutHttpError(502, "create_stripe_checkout_session", error.message);
   }
 
   const message = error instanceof Error ? error.message : "Se produjo un error inesperado al crear el checkout.";
@@ -158,14 +204,14 @@ function normalizeUnknownError(error: unknown) {
   }
 
   if (message.includes("STRIPE_SECRET_KEY")) {
-    return new CheckoutHttpError(503, "STRIPE_SECRET_KEY", message, "STRIPE_SECRET_KEY");
+    return new CheckoutHttpError(503, "create_stripe_checkout_session", message, "STRIPE_SECRET_KEY");
   }
 
   if (message.includes("NEXT_PUBLIC_SITE_URL")) {
     return new CheckoutHttpError(500, "NEXT_PUBLIC_SITE_URL", message, "NEXT_PUBLIC_SITE_URL");
   }
 
-  return new CheckoutHttpError(500, "cualquier otra excepcion", message);
+  return new CheckoutHttpError(500, "unexpected_error", message);
 }
 
 export async function POST(request: Request) {
@@ -197,7 +243,7 @@ export async function POST(request: Request) {
       const match = variants.get(item.variantId);
 
       if (!match) {
-        throw new CheckoutHttpError(409, "consulta a Printful", `La variante ${item.variantId} no pertenece al catalogo real sincronizado desde Printful.`);
+        throw new CheckoutHttpError(409, "fetch_printful_variant", `La variante ${item.variantId} no pertenece al catalogo real sincronizado desde Printful.`);
       }
 
       const { product, variant } = match;
@@ -208,7 +254,7 @@ export async function POST(request: Request) {
         variant.price === null ||
         !variant.currency
       ) {
-        throw new CheckoutHttpError(409, "consulta a Printful", `La variante ${variant.name} no esta lista para checkout en este momento.`);
+        throw new CheckoutHttpError(409, "validate_price", `La variante ${variant.name} no esta lista para checkout en este momento.`);
       }
 
       return {
@@ -221,7 +267,7 @@ export async function POST(request: Request) {
     const currencies = Array.from(new Set(resolvedItems.map((item) => item.variant.currency?.toUpperCase() || "USD")));
 
     if (currencies.length !== 1) {
-      throw new CheckoutHttpError(409, "validacion del carrito", "No se puede crear un checkout con monedas mixtas.");
+      throw new CheckoutHttpError(409, "validate_cart", "No se puede crear un checkout con monedas mixtas.");
     }
 
     const currency = currencies[0];
@@ -262,7 +308,7 @@ export async function POST(request: Request) {
     });
 
     if (!session.url) {
-      throw new CheckoutHttpError(502, "creacion de Stripe Checkout Session", "Stripe no devolvio una URL valida para el checkout.");
+      throw new CheckoutHttpError(502, "create_stripe_checkout_session", "Stripe no devolvio una URL valida para el checkout.");
     }
 
     return NextResponse.json(
@@ -273,6 +319,8 @@ export async function POST(request: Request) {
       { status: 200 },
     );
   } catch (error) {
-    return buildErrorResponse(normalizeUnknownError(error));
+    const normalizedError = normalizeUnknownError(error);
+    logCheckoutError(normalizedError, error);
+    return buildErrorResponse(normalizedError);
   }
 }
